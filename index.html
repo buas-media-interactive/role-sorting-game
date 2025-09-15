@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Role Sorting Card Game</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .game-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin: 20px auto;
+            max-width: 1200px;
+        }
+        
+        .question-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 8px;
+            cursor: grab;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-weight: 500;
+            position: relative;
+        }
+        
+        .question-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+        }
+        
+        .question-card.dragging {
+            opacity: 0.7;
+            transform: rotate(5deg);
+        }
+        
+        .drop-zone {
+            min-height: 200px;
+            border: 3px dashed #dee2e6;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 10px 0;
+            transition: all 0.3s ease;
+            background-color: #f8f9fa;
+        }
+        
+        .drop-zone.drag-over {
+            border-color: #0d6efd;
+            background-color: #e7f3ff;
+            transform: scale(1.02);
+        }
+        
+        .drop-zone h4 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        
+        .product-zone { border-color: #8B008B; }
+        .product-zone h4 { color: #8B008B; }
+        .product-zone.drag-over { border-color: #8B008B; background-color: #f8e6f8; }
+        
+        .content-zone { border-color: #FF8C00; }
+        .content-zone h4 { color: #FF8C00; }
+        .content-zone.drag-over { border-color: #FF8C00; background-color: #fff4e6; }
+        
+        .marketing-zone { border-color: #228B22; }
+        .marketing-zone h4 { color: #228B22; }
+        .marketing-zone.drag-over { border-color: #228B22; background-color: #e6f8e6; }
+        
+        .overlap-zone { border-color: #696969; }
+        .overlap-zone h4 { color: #696969; }
+        .overlap-zone.drag-over { border-color: #696969; background-color: #f0f0f0; }
+        
+        .question-card.correct {
+            border-color: #28a745;
+            background-color: #d4edda;
+            animation: correctPulse 0.6s ease;
+        }
+        
+        .question-card.incorrect {
+            border-color: #dc3545;
+            background-color: #f8d7da;
+            animation: shake 0.6s ease;
+        }
+        
+        @keyframes correctPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        .score-panel {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .role-icon {
+            font-size: 24px;
+            margin-right: 10px;
+        }
+        
+        .feedback-modal .modal-content {
+            border-radius: 20px;
+        }
+        
+        .btn-game {
+            border-radius: 25px;
+            padding: 10px 25px;
+            font-weight: 600;
+            margin: 5px;
+        }
+        
+        .questions-container {
+            background-color: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            min-height: 150px;
+        }
+        
+        .game-instructions {
+            background-color: #e3f2fd;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196F3;
+        }
+        
+        .progress-container {
+            margin: 20px 0;
+        }
+        
+        .reset-hint {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="game-container">
+            <div class="text-center mb-4">
+                <h1 class="display-4 text-primary mb-3">
+                    <i class="fas fa-puzzle-piece"></i> Role Sorting Game
+                </h1>
+                <p class="lead">Drag questions to the correct coordinator role!</p>
+            </div>
+            
+            <div class="game-instructions">
+                <h5><i class="fas fa-info-circle"></i> How to Play</h5>
+                <p class="mb-0">Drag each question card to the role you think should handle it. Get instant feedback and learn about role boundaries!</p>
+            </div>
+            
+            <div class="score-panel">
+                <div class="row">
+                    <div class="col-md-3">
+                        <h5><i class="fas fa-target"></i> Score</h5>
+                        <span class="h3" id="score">0</span> / <span id="total">0</span>
+                    </div>
+                    <div class="col-md-3">
+                        <h5><i class="fas fa-percentage"></i> Accuracy</h5>
+                        <span class="h3" id="accuracy">0%</span>
+                    </div>
+                    <div class="col-md-3">
+                        <h5><i class="fas fa-clock"></i> Time</h5>
+                        <span class="h3" id="timer">0:00</span>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-light btn-game" onclick="resetGame()">
+                            <i class="fas fa-redo"></i> Reset
+                        </button>
+                        <button class="btn btn-warning btn-game" onclick="revealAllAnswers()">
+                            <i class="fas fa-eye"></i> Show Answers
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="progress-container">
+                <div class="progress mb-2" style="height: 8px;">
+                    <div class="progress-bar bg-success" role="progressbar" id="progressBar" style="width: 0%"></div>
+                </div>
+                <div class="text-center">
+                    <small class="text-muted">Progress: <span id="progressText">0 of 0 cards sorted</span></small>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12">
+                    <h4><i class="fas fa-cards"></i> Question Cards</h4>
+                    <div class="questions-container" id="questionsContainer">
+                        <!-- Questions will be populated here -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="drop-zone product-zone" data-role="product">
+                        <h4><span class="role-icon">🎯</span>Product Coordinator</h4>
+                        <small class="text-muted">User experience, functionality, accessibility</small>
+                        <div class="dropped-cards" id="productCards"></div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="drop-zone content-zone" data-role="content">
+                        <h4><span class="role-icon">✏️</span>Content Coordinator</h4>
+                        <small class="text-muted">Content strategy, editorial, storytelling</small>
+                        <div class="dropped-cards" id="contentCards"></div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="drop-zone marketing-zone" data-role="marketing">
+                        <h4><span class="role-icon">📢</span>Marketing Coordinator</h4>
+                        <small class="text-muted">Promotion, audience targeting, campaigns</small>
+                        <div class="dropped-cards" id="marketingCards"></div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="drop-zone overlap-zone" data-role="overlap">
+                        <h4><span class="role-icon">⚠️</span>Overlap Zone</h4>
+                        <small class="text-muted">Multiple roles involved</small>
+                        <div class="dropped-cards" id="overlapCards"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mt-4">
+                <div class="reset-hint">
+                    <i class="fas fa-lightbulb"></i> Tip: Double-click a card to see the correct answer!
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback Modal -->
+    <div class="modal fade" id="feedbackModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="feedbackTitle">Card Feedback</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="feedbackBody">
+                    <!-- Feedback content -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Got it!</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Game data
+        const questions = [
+            {
+                id: 1,
+                text: "How can we make the search button easier to find on our website?",
+                correctRole: "product",
+                explanation: "This is about user interface design and usability - core Product Coordinator responsibilities."
+            },
+            {
+                id: 2,
+                text: "What topics should our next five podcast episodes cover?",
+                correctRole: "content",
+                explanation: "Editorial planning and content strategy is handled by the Content Coordinator."
+            },
+            {
+                id: 3,
+                text: "Which social media platforms should we focus our promotion on?",
+                correctRole: "marketing",
+                explanation: "Channel selection for promotional activities is a Marketing Coordinator decision."
+            },
+            {
+                id: 4,
+                text: "Why do people stop watching our videos after 2 minutes?",
+                correctRole: "overlap",
+                explanation: "This could be a usability issue (Product), content quality issue (Content), or wrong audience targeting (Marketing)."
+            },
+            {
+                id: 5,
+                text: "How long should each episode be to keep listeners engaged?",
+                correctRole: "product",
+                explanation: "This is about optimizing the user experience and consumption patterns - Product Coordinator territory."
+            },
+            {
+                id: 6,
+                text: "What writing style guide should we follow?",
+                correctRole: "content",
+                explanation: "Editorial standards and writing guidelines are Content Coordinator responsibilities."
+            },
+            {
+                id: 7,
+                text: "How do we reach 18-25 year olds with our campaign?",
+                correctRole: "marketing",
+                explanation: "Audience targeting and demographic reach is core Marketing Coordinator work."
+            },
+            {
+                id: 8,
+                text: "How can we make our magazine easier to navigate?",
+                correctRole: "product",
+                explanation: "Navigation and user experience design, even for print media, is Product Coordinator work."
+            },
+            {
+                id: 9,
+                text: "Why are our engagement rates dropping?",
+                correctRole: "overlap",
+                explanation: "Could be user experience issues (Product), content quality decline (Content), or audience changes (Marketing)."
+            },
+            {
+                id: 10,
+                text: "How do we ensure our podcast is accessible to people with hearing difficulties?",
+                correctRole: "product",
+                explanation: "Accessibility considerations are Product Coordinator responsibilities across all media types."
+            }
+        ];
+        
+        // Game state
+        let gameState = {
+            score: 0,
+            totalCards: questions.length,
+            startTime: null,
+            timer: null,
+            sortedCards: 0,
+            revealMode: false
+        };
+        
+        // Initialize game
+        function initGame() {
+            gameState.startTime = new Date();
+            startTimer();
+            renderQuestions();
+            updateScore();
+            setupDragAndDrop();
+        }
+        
+        // Render questions
+        function renderQuestions() {
+            const container = document.getElementById('questionsContainer');
+            container.innerHTML = '';
+            
+            questions.forEach(q => {
+                const card = document.createElement('div');
+                card.className = 'question-card';
+                card.draggable = true;
+                card.dataset.questionId = q.id;
+                card.dataset.correctRole = q.correctRole;
+                card.innerHTML = `
+                    <span>${q.text}</span>
+                `;
+                
+                // Add double-click to reveal answer
+                card.addEventListener('dblclick', () => showCardFeedback(q));
+                
+                container.appendChild(card);
+            });
+        }
+        
+        // Setup drag and drop
+        function setupDragAndDrop() {
+            const cards = document.querySelectorAll('.question-card');
+            const dropZones = document.querySelectorAll('.drop-zone');
+            
+            cards.forEach(card => {
+                card.addEventListener('dragstart', handleDragStart);
+                card.addEventListener('dragend', handleDragEnd);
+            });
+            
+            dropZones.forEach(zone => {
+                zone.addEventListener('dragover', handleDragOver);
+                zone.addEventListener('drop', handleDrop);
+                zone.addEventListener('dragenter', handleDragEnter);
+                zone.addEventListener('dragleave', handleDragLeave);
+            });
+        }
+        
+        function handleDragStart(e) {
+            e.dataTransfer.setData('text/plain', e.target.dataset.questionId);
+            e.target.classList.add('dragging');
+        }
+        
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+        }
+        
+        function handleDragOver(e) {
+            e.preventDefault();
+        }
+        
+        function handleDragEnter(e) {
+            e.preventDefault();
+            if (e.target.classList.contains('drop-zone')) {
+                e.target.classList.add('drag-over');
+            }
+        }
+        
+        function handleDragLeave(e) {
+            if (e.target.classList.contains('drop-zone')) {
+                e.target.classList.remove('drag-over');
+            }
+        }
+        
+        function handleDrop(e) {
+            e.preventDefault();
+            const dropZone = e.target.closest('.drop-zone');
+            if (!dropZone) return;
+            
+            dropZone.classList.remove('drag-over');
+            
+            const questionId = e.dataTransfer.getData('text/plain');
+            const card = document.querySelector(`[data-question-id="${questionId}"]`);
+            const question = questions.find(q => q.id == questionId);
+            
+            if (card && question) {
+                const isCorrect = dropZone.dataset.role === question.correctRole;
+                
+                // Move card to drop zone
+                const targetContainer = dropZone.querySelector('.dropped-cards');
+                targetContainer.appendChild(card);
+                
+                // Provide feedback
+                if (isCorrect) {
+                    card.classList.add('correct');
+                    gameState.score++;
+                    showToast('Correct!', 'success');
+                } else {
+                    card.classList.add('incorrect');
+                    showToast(`Incorrect. This belongs to ${getRoleName(question.correctRole)}`, 'error');
+                }
+                
+                gameState.sortedCards++;
+                updateScore();
+                
+                // Remove drag functionality
+                card.draggable = false;
+                
+                // Auto-show explanation after a delay
+                setTimeout(() => {
+                    if (!gameState.revealMode) {
+                        showCardFeedback(question);
+                    }
+                }, 1500);
+            }
+        }
+        
+        // Helper functions
+        function getRoleName(role) {
+            const roleNames = {
+                'product': 'Product Coordinator',
+                'content': 'Content Coordinator',
+                'marketing': 'Marketing Coordinator',
+                'overlap': 'Overlap Zone'
+            };
+            return roleNames[role] || role;
+        }
+        
+        function showCardFeedback(question) {
+            const modal = new bootstrap.Modal(document.getElementById('feedbackModal'));
+            document.getElementById('feedbackTitle').textContent = `${getRoleName(question.correctRole)} Question`;
+            document.getElementById('feedbackBody').innerHTML = `
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">Question:</h6>
+                        <p class="card-text">"${question.text}"</p>
+                        <h6 class="card-title">Why this belongs to ${getRoleName(question.correctRole)}:</h6>
+                        <p class="card-text">${question.explanation}</p>
+                    </div>
+                </div>
+            `;
+            modal.show();
+        }
+        
+        function showToast(message, type) {
+            // Simple toast notification
+            const toast = document.createElement('div');
+            toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed top-0 end-0 m-3`;
+            toast.style.zIndex = '9999';
+            toast.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'times-circle'}"></i>
+                ${message}
+            `;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+        
+        function updateScore() {
+            document.getElementById('score').textContent = gameState.score;
+            document.getElementById('total').textContent = gameState.totalCards;
+            
+            const accuracy = gameState.sortedCards > 0 ? Math.round((gameState.score / gameState.sortedCards) * 100) : 0;
+            document.getElementById('accuracy').textContent = accuracy + '%';
+            
+            const progress = (gameState.sortedCards / gameState.totalCards) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+            document.getElementById('progressText').textContent = `${gameState.sortedCards} of ${gameState.totalCards} cards sorted`;
+            
+            // Check if game complete
+            if (gameState.sortedCards === gameState.totalCards) {
+                setTimeout(() => {
+                    showGameComplete();
+                }, 1000);
+            }
+        }
+        
+        function showGameComplete() {
+            const accuracy = Math.round((gameState.score / gameState.totalCards) * 100);
+            let message = '';
+            if (accuracy >= 90) message = '🏆 Excellent! You really understand the role boundaries!';
+            else if (accuracy >= 70) message = '👏 Well done! You have a good grasp of the different roles!';
+            else message = '💪 Good effort! Keep practicing to master the role distinctions!';
+            
+            showToast(`Game Complete! ${message} (${accuracy}% accuracy)`, 'success');
+        }
+        
+        function startTimer() {
+            gameState.timer = setInterval(() => {
+                const elapsed = new Date() - gameState.startTime;
+                const minutes = Math.floor(elapsed / 60000);
+                const seconds = Math.floor((elapsed % 60000) / 1000);
+                document.getElementById('timer').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+        
+        function resetGame() {
+            // Clear timer
+            if (gameState.timer) {
+                clearInterval(gameState.timer);
+            }
+            
+            // Reset game state
+            gameState = {
+                score: 0,
+                totalCards: questions.length,
+                startTime: new Date(),
+                timer: null,
+                sortedCards: 0,
+                revealMode: false
+            };
+            
+            // Clear all drop zones
+            document.querySelectorAll('.dropped-cards').forEach(container => {
+                container.innerHTML = '';
+            });
+            
+            // Re-render questions
+            renderQuestions();
+            updateScore();
+            setupDragAndDrop();
+            startTimer();
+        }
+        
+        function revealAllAnswers() {
+            gameState.revealMode = true;
+            const cards = document.querySelectorAll('.question-card');
+            
+            cards.forEach(card => {
+                const questionId = card.dataset.questionId;
+                const question = questions.find(q => q.id == questionId);
+                const correctRole = question.correctRole;
+                
+                // Add visual indicator of correct answer
+                card.style.borderColor = getRoleColor(correctRole);
+                card.style.backgroundColor = getRoleColorLight(correctRole);
+                
+                // Add role indicator
+                const roleIndicator = document.createElement('div');
+                roleIndicator.className = 'position-absolute top-0 end-0 badge';
+                roleIndicator.style.backgroundColor = getRoleColor(correctRole);
+                roleIndicator.textContent = getRoleIcon(correctRole);
+                roleIndicator.style.borderRadius = '0 10px 0 10px';
+                card.appendChild(roleIndicator);
+            });
+            
+            showToast('All answers revealed! Card colors and icons show correct roles.', 'success');
+        }
+        
+        function getRoleColor(role) {
+            const colors = {
+                'product': '#8B008B',
+                'content': '#FF8C00',
+                'marketing': '#228B22',
+                'overlap': '#696969'
+            };
+            return colors[role];
+        }
+        
+        function getRoleColorLight(role) {
+            const colors = {
+                'product': '#f8e6f8',
+                'content': '#fff4e6',
+                'marketing': '#e6f8e6',
+                'overlap': '#f0f0f0'
+            };
+            return colors[role];
+        }
+        
+        function getRoleIcon(role) {
+            const icons = {
+                'product': '🎯',
+                'content': '✏️',
+                'marketing': '📢',
+                'overlap': '⚠️'
+            };
+            return icons[role];
+        }
+        
+        // Initialize game when page loads
+        document.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>
