@@ -3,7 +3,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
 		body {
             /*background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);*/
-			background: #FD08E1;
+			background: #F5F1E9;
 			min-height: 100vh;
 			/*font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;*/
 			font-family: "Plus Jakarta Sans", sans-serif;
@@ -166,6 +166,9 @@
             margin-top: 5px;
         }
 
-	footer {
+		.double-container {
 		border-radius: 15px;
+		border: 1px solid black;
 	}
+
+
